@@ -1,0 +1,51 @@
+.services {
+	display: table;
+	margin: 1em 0;
+	border-collapse: collapse;
+}
+
+.services > .service, .services > .header {
+	display: table-row;
+}
+
+.services > .service > .detail, .services > .header > .title {
+	display: table-cell;
+	border: 1px solid #666;
+	padding: 0.25em 0.5em;
+}
+
+.services > .service:nth-child(even) {
+	background-color: #ddd;
+}
+
+
+.services > .header > .title{
+	font-weight: bold;
+}
+
+form {
+	display: table;
+	margin: 1em 0;
+	border-collapse: collapse;
+}
+
+form > div {
+	display: table-row;
+}
+
+form > div > span, form > div >label {
+	display: table-cell;
+	padding: 0.25em 0.5em;
+}
+
+* {
+	font-family: Arial;
+}
+
+.up {
+	background-color: #c0ffc0;
+}
+
+.down {
+	background-color: #ffc0c0;
+}

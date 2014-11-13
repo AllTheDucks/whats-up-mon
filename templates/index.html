@@ -1,0 +1,50 @@
+<html>
+<head>
+	<title>All the Ducks Services Monitor</title>
+	<link href="/static/default.css" media="all" rel="stylesheet" type="text/css" />
+</head>
+<body>
+	<h1>All the Ducks Services Monitor</h1>
+
+	<div class="services">
+		<div class="header">
+			<div class="title">URL</div>
+			<div class="title">Health String</div>
+			<div class="title">Up</div>
+			<div class="title">Enabled</div>
+			<div class="title">Actions</div>
+		</div>
+		{{range .}}
+			<div class="service">
+				<div class="detail">{{.Service.Url}}</div>
+				<div class="detail">{{.Service.HealthString}}</div>
+				{{if .Service.Up}}
+					<div class="detail up">Up</div>
+				{{else}}
+					<div class="detail down">Down</div>
+				{{end}}
+				{{if .Service.Enabled}}
+					<div class="detail enabled">Enabled</div>
+				{{else}}
+					<div class="detail disabled">Disabled</div>
+				{{end}}
+				<div class="detail">
+					{{$key := .Key.Encode}}
+					<a href="/delete?key={{$key}}">Delete</a>
+					{{if .Service.Enabled}}
+						<a href="/disable?key={{$key}}">Disable</a>
+					{{else}}
+						<a href="/enable?key={{$key}}">Enable</a>
+					{{end}}
+				</div>
+			</div>
+	    {{end}}
+	</div>
+
+	<form action="/add" method="POST">
+		<div><label>URL: </label><span><input type=text name="url" /><span></div>
+		<div><label>Health String: </label><span><input type=text name="healthstring" /></span></div>
+		<div><span><input type="submit" value="Add" /></span></div>
+	</form>
+</body>
+</html>
