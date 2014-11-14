@@ -26,7 +26,7 @@ type ServiceRecord struct {
 }
 
 func init() {
-    http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+    // http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
     http.HandleFunc("/", indexHandler)
     http.HandleFunc("/add", addHandler)
@@ -147,7 +147,7 @@ func checkHandler(w http.ResponseWriter, r *http.Request) {
 
 		err := validate(client, service.Url, service.HealthString)
 	    if err != nil {
-	    	fmt.Fprint(w, err)
+	    	c.Infof("%v", err)
 
 	    	if(service.Up) {
 	    		//notify
@@ -161,7 +161,7 @@ func checkHandler(w http.ResponseWriter, r *http.Request) {
 	    }
 	}
 
-    fmt.Fprint(w, "Done!");
+    c.Infof("%s", "Completed Checks.");
 }
 
 func validate(client *http.Client, url string, healthstring string) error {
