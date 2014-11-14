@@ -1,4 +1,4 @@
-package ducksmon
+package whatsupmon
 
 import (
     "fmt"
