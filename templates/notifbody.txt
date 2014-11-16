@@ -1,0 +1,14 @@
+Hello there,
+
+Some services have changed state.
+
+{{if gt (len .Down) 0}}These services have become unavailable:
+{{range .Down}}{{.Url}}
+{{end}}{{end}}
+
+{{if gt (len .Up) 0}}These services have become available:
+{{range .Up}}{{.Url}}
+{{end}}{{end}}
+
+Cheers,
+What's Up Mon.

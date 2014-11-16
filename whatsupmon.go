@@ -5,13 +5,19 @@ import (
     "net/http"
     "strings"
     "io/ioutil"
+    "text/template"
+    "bytes"
+
     "appengine"
     "appengine/urlfetch"
     "appengine/datastore"
-    "text/template"
+    "appengine/mail"
 )
 
 var indexTemplate = template.Must(template.ParseFiles("templates/index.html"))
+var notifSubjectTempl = template.Must(template.ParseFiles("templates/notifsubject.txt"))
+var notifBodyTempl = template.Must(template.ParseFiles("templates/notifbody.txt"))
+
 
 type Service struct {
 	Url string
@@ -25,15 +31,33 @@ type ServiceRecord struct {
 	Key *datastore.Key
 }
 
-func init() {
-    // http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+type Address struct {
+	Email string
+}
 
+type AddressRecord struct {
+	Address Address
+	Key *datastore.Key
+}
+
+type Notification struct {
+	Up []Service
+	Down []Service
+}
+
+type IndexModel struct {
+	ServiceRecords []ServiceRecord
+	AddressRecords []AddressRecord
+}
+
+func init() {
     http.HandleFunc("/", indexHandler)
     http.HandleFunc("/add", addHandler)
+    http.HandleFunc("/delete", deleteHandler)
     http.HandleFunc("/check", checkHandler)
     http.HandleFunc("/enable", enableHandler)
     http.HandleFunc("/disable", disableHandler)
-    http.HandleFunc("/delete", deleteHandler)
+    http.HandleFunc("/addaddr", addAddrHandler)
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +69,18 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		return;
 	}
 
-    if err := indexTemplate.Execute(w, services); err != nil {
+	addresses, err := getAddresses(c)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return;
+	}
+
+	model := IndexModel{
+		ServiceRecords: services,
+		AddressRecords: addresses,
+	}
+
+    if err := indexTemplate.Execute(w, model); err != nil {
             http.Error(w, err.Error(), http.StatusInternalServerError)
     }
 }
@@ -138,6 +173,8 @@ func checkHandler(w http.ResponseWriter, r *http.Request) {
 		return;
 	}
 
+	var notification Notification
+
 	for _, serviceRecord := range serviceRecords {
 		service := serviceRecord.Service
 
@@ -150,15 +187,21 @@ func checkHandler(w http.ResponseWriter, r *http.Request) {
 	    	c.Infof("%v", err)
 
 	    	if(service.Up) {
-	    		//notify
 	    		service.Up = false;
 	    		datastore.Put(c, serviceRecord.Key, &service)
+	    		notification.Down = append(notification.Down, service)
 	    	}
 	    } else if(!service.Up) {
-    		//notify
     		service.Up = true;
     		datastore.Put(c, serviceRecord.Key, &service)
+    		notification.Up = append(notification.Up, service)
 	    }
+	}
+
+	if len(notification.Up) > 0 || len(notification.Down) > 0 {
+		if err := notify(c, notification); err != nil {
+    		c.Errorf("Couldn't send notification: %v", err)
+    	}
 	}
 
     c.Infof("%s", "Completed Checks.");
@@ -207,4 +250,77 @@ func getServices(c appengine.Context) ([]ServiceRecord, error) {
 	}
 
     return serviceRecords, nil
+}
+
+func notify(c appengine.Context, notification Notification) error {
+	var subjectBuf bytes.Buffer
+	if err := notifSubjectTempl.Execute(&subjectBuf, notification); err != nil {
+		return err
+	}
+	var bodyBuf bytes.Buffer
+	if err := notifBodyTempl.Execute(&bodyBuf, notification); err != nil {
+		return err
+	}
+
+	addrRecords, err := getAddresses(c)
+	if err != nil {
+		return err
+	}
+	var toAddrs = make([]string, 0, len(addrRecords))
+	for _, address := range addrRecords {
+		toAddrs = append(toAddrs, address.Address.Email)
+	}
+
+	msg := &mail.Message{
+        Sender:  "What's Up Mon? <notify@whats-up-mon.appspotmail.com>",
+        To:      toAddrs,
+        Subject: subjectBuf.String(),
+        Body:    bodyBuf.String(),
+    }
+    if err := mail.Send(c, msg); err != nil {
+        return err
+    }
+
+    return nil
+}
+
+func addAddrHandler(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+    addr := Address {
+    	Email: r.FormValue("addr"),
+    }
+
+    key := datastore.NewIncompleteKey(c, "address", addressKey(c))
+    _, err := datastore.Put(c, key, &addr)
+    if err != nil {
+            http.Error(w, err.Error(), http.StatusInternalServerError)
+            return
+    }
+    http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func addressKey(c appengine.Context) *datastore.Key {
+        return datastore.NewKey(c, "address", "addresses", 0, nil)
+}
+
+func getAddresses(c appengine.Context) ([]AddressRecord, error) {
+	q := datastore.NewQuery("address").Ancestor(addressKey(c))
+
+    var addresses []Address
+    keys, err := q.GetAll(c, &addresses)
+    if err != nil {
+    	return nil, err
+    }
+
+	var addressRecords = make([]AddressRecord, 0, len(addresses))
+
+	for index, address := range addresses {
+		addr := AddressRecord{
+			Address: address,
+			Key: keys[index],
+		}
+		addressRecords = append(addressRecords, addr)
+	}
+
+    return addressRecords, nil
 }

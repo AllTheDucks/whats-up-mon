@@ -1,0 +1,1 @@
+Services changed state: {{if eq (len .Down) 1}}1 is unavailable{{else if gt (len .Down) 1}}{{len .Down}} are unavailable{{end}}{{if and (gt (len .Down) 0) (gt (len .Up) 0)}} and {{end}}{{if eq (len .Up) 1}}1 is available{{else if gt (len .Up) 1}}{{len .Up}} are available{{end}}

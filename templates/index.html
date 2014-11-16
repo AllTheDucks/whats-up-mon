@@ -6,6 +6,7 @@
 <body>
 	<h1>All the Ducks Services Monitor</h1>
 
+	<h2>Services</h2>
 	<div class="services">
 		<div class="header">
 			<div class="title">URL</div>
@@ -14,7 +15,7 @@
 			<div class="title">Enabled</div>
 			<div class="title">Actions</div>
 		</div>
-		{{range .}}
+		{{range .ServiceRecords}}
 			<div class="service">
 				<div class="detail">{{.Service.Url}}</div>
 				<div class="detail">{{.Service.HealthString}}</div>
@@ -46,5 +47,18 @@
 		<div><label>Health String: </label><span><input type=text name="healthstring" /></span></div>
 		<div><span><input type="submit" value="Add" /></span></div>
 	</form>
+
+	<h2>Notification Addresses</h2>
+	<ul class="addresses">
+		{{range .AddressRecords}}
+			<li>{{.Address.Email}} (<a href="/delete?key={{.Key.Encode}}">Delete</a>)</li>
+	    {{end}}
+	</ul>
+
+	<form action="/addaddr" method="POST">
+		<div><label>Address: </label><span><input type=text name="addr" /><span></div>
+		<div><span><input type="submit" value="Add" /></span></div>
+	</form>	
+
 </body>
 </html>
