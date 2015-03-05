@@ -7,6 +7,7 @@ import (
     "io/ioutil"
     "text/template"
     "bytes"
+    "time"
 
     "appengine"
     "appengine/urlfetch"
@@ -165,7 +166,16 @@ func setServiceEnabled(c appengine.Context, key *datastore.Key, enabled bool) er
 
 func checkHandler(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-    client := urlfetch.Client(c)
+	timeout, _:= time.ParseDuration("20s");
+	transport := &urlfetch.Transport{
+		Context: c,
+		Deadline: timeout,
+		AllowInvalidServerCertificate: false,
+	}
+    client := &http.Client{
+    	Transport: transport,
+    	Timeout: 0,
+    }
     
     serviceRecords, err := getServices(c)
 	if err != nil {
